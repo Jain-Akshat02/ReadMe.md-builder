@@ -9,6 +9,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "public" | "private">("all");
+  const [loadingReadme, setLoadingReadme] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -31,13 +32,31 @@ export default function ProfilePage() {
     await axios.get("/api/auth/logout");
     router.push("/");
   };
+  const generateReadme = async (repo: any) => {
+    try {
+      setLoadingReadme(repo.name); // indicate which repo is loading
+      const res = await axios.post("/api/readme", { repo });
+      const readme = res.data.readme;
+
+      // Here you can either download it or open in a modal
+      console.log(readme); // for now, just log it
+      alert("README generated! Check console.");
+    } catch (err) {
+      console.error("Error generating README:", err);
+      alert("Failed to generate README");
+    } finally {
+      setLoadingReadme(null);
+    }
+  };
 
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
         <div className="flex flex-col items-center space-y-4">
           <div className="h-16 w-16 animate-spin rounded-full border-4 border-slate-600 border-t-sky-400"></div>
-          <p className="text-lg font-medium animate-pulse">Loading your profile...</p>
+          <p className="text-lg font-medium animate-pulse">
+            Loading your profile...
+          </p>
         </div>
       </main>
     );
@@ -61,20 +80,20 @@ export default function ProfilePage() {
         <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-gradient-to-tr from-fuchsia-500/20 via-purple-400/20 to-indigo-400/10 blur-3xl animate-drift-slow" />
       </div>
 
-      {/* Profile Card */}
       <section className="mx-auto mt-20 max-w-5xl rounded-lg border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-lg">
-        {/* Profile Header */}
         <div className="flex flex-col items-center sm:flex-row sm:items-start sm:gap-8">
           <div className="relative">
             <img
               src={user.avatarUrl}
               alt={user.login}
-              className="h-28 w-28 rounded-lg border-2 border-white/20 shadow-lg"
+              className="h-28 w-28 rounded-full border-2 border-white/20 shadow-lg"
             />
           </div>
-          
+
           <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-3xl font-bold text-white mb-2">{user.name || user.login}</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {user.name || user.login}
+            </h1>
             <p className="text-slate-400 text-lg mb-1">@{user.login}</p>
             {user.bio && (
               <p className="text-slate-300 text-sm max-w-md mb-4">{user.bio}</p>
@@ -121,7 +140,7 @@ export default function ProfilePage() {
                 : "border-white/10 hover:border-white/20 hover:bg-white/5"
             }`}
           >
-             All ({user.repos.length})
+            All ({user.repos.length})
           </button>
           <button
             onClick={() => setFilter("public")}
@@ -131,7 +150,7 @@ export default function ProfilePage() {
                 : "border-white/10 hover:border-white/20 hover:bg-white/5"
             }`}
           >
-             Public ({user.publicRepos})
+            Public ({user.publicRepos})
           </button>
           <button
             onClick={() => setFilter("private")}
@@ -141,7 +160,7 @@ export default function ProfilePage() {
                 : "border-white/10 hover:border-white/20 hover:bg-white/5"
             }`}
           >
-             Private ({user.privateRepos})
+            Private ({user.privateRepos})
           </button>
         </div>
 
@@ -171,21 +190,23 @@ export default function ProfilePage() {
                   <h2 className="text-lg font-semibold text-white truncate">
                     {repo.name}
                   </h2>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    repo.private 
-                      ? "bg-fuchsia-400/20 text-fuchsia-300 border border-fuchsia-400/30"
-                      : "bg-sky-400/20 text-sky-300 border border-sky-400/30"
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      repo.private
+                        ? "bg-fuchsia-400/20 text-fuchsia-300 border border-fuchsia-400/30"
+                        : "bg-sky-400/20 text-sky-300 border border-sky-400/30"
+                    }`}
+                  >
                     {repo.private ? "Private" : "Public"}
                   </span>
                 </div>
-                
+
                 {repo.description && (
                   <p className="text-sm text-slate-400 mb-4 line-clamp-2">
                     {repo.description}
                   </p>
                 )}
-                
+
                 <div className="flex items-center gap-4 text-slate-300 text-sm mb-4">
                   <div className="flex items-center gap-1">
                     <span>⭐</span>
@@ -202,17 +223,35 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
-                
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Updated {new Date(repo.updatedAt).toLocaleDateString()}</span>
-                  <a 
-                    href={repo.htmlUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sky-400 hover:text-sky-300 transition-colors duration-200 text-sm"
-                  >
-                    View
-                  </a>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 mt-2">
+                  <span>
+                    Updated {new Date(repo.updatedAt).toLocaleDateString()}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={repo.htmlUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sky-300 hover:text-sky-300 transition-colors duration-200 text-sm"
+                    >
+                      View
+                    </a>
+                    <button
+                      onClick={() => generateReadme(repo)}
+                      disabled={loadingReadme === repo.name}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors duration-200 ${
+                        loadingReadme === repo.name
+                          ? "bg-gray-500 cursor-not-allowed"
+                          : "bg-indigo-500 text-white hover:bg-indigo-400"
+                      }`}
+                      style={{ minWidth: "unset" }}
+                    >
+                      {loadingReadme === repo.name
+                        ? "Generating..."
+                        : "Generate Readme"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -220,7 +259,9 @@ export default function ProfilePage() {
         ) : (
           <div className="mt-12 text-center">
             <p className="text-slate-400 text-lg">No repositories found</p>
-            <p className="text-slate-500 text-sm mt-2">Try adjusting your search or filter criteria</p>
+            <p className="text-slate-500 text-sm mt-2">
+              Try adjusting your search or filter criteria
+            </p>
           </div>
         )}
       </section>
@@ -251,7 +292,8 @@ export default function ProfilePage() {
           }
         }
         @keyframes pulse-glow {
-          0%, 100% {
+          0%,
+          100% {
             box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
           }
           50% {
