@@ -5,7 +5,6 @@ import User from "@/models/User";
 export async function GET(req: Request) {
   await dbConnect();
 
-  // Read cookie
   const sessionToken = req.headers.get("cookie")
     ?.split("; ")
     .find((c) => c.startsWith("gh_token="))
@@ -22,7 +21,7 @@ export async function GET(req: Request) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 0, // expires immediately
+    maxAge: 0, 
   });
 
   return res;
