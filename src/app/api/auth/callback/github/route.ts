@@ -15,7 +15,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Exchange "code" for "access_token"
     const tokenResponse = await axios.post(
       "https://github.com/login/oauth/access_token",
       {
@@ -50,13 +49,12 @@ export async function GET(request: Request) {
       await user.save();
     }
 
-    // Create session token
+
     const sessionToken = crypto.randomBytes(32).toString("hex");
 
     user.sessionToken = sessionToken;
     await user.save();
 
-    // Set cookie with GitHub access token to match /api/me expectations
     const response = NextResponse.redirect("http://localhost:3000/profile");
     response.cookies.set("gh_token", accessToken, {
       httpOnly: true,
