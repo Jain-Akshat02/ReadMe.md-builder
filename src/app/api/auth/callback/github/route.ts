@@ -56,9 +56,9 @@ export async function GET(request: Request) {
     user.sessionToken = sessionToken;
     await user.save();
 
-    // Set cookie with session token
+    // Set cookie with GitHub access token to match /api/me expectations
     const response = NextResponse.redirect("http://localhost:3000/profile");
-    response.cookies.set("session_token", sessionToken, {
+    response.cookies.set("gh_token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",

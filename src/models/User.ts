@@ -6,6 +6,7 @@ const UserSchema = new Schema({
   name: { type: String },
   avatarUrl: { type: String },
   accessToken: { type: String, required: true }, // 🔑 stored safely in DB
+  sessionToken: { type: String },
 }, { timestamps: true });
 
 const User = models.User || model("User", UserSchema);
