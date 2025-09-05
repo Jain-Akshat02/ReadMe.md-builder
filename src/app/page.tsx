@@ -14,14 +14,12 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      {/* Decorative background accents */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-tr from-indigo-500/25 via-sky-400/20 to-cyan-300/10 blur-3xl animate-drift" />
         <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-gradient-to-tr from-fuchsia-500/20 via-purple-400/20 to-indigo-400/10 blur-3xl animate-drift-slow" />
         <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(255,255,255,0.06),transparent)]" />
       </div>
 
-      {/* Hero Section */}
       <section className="mx-auto flex max-w-6xl flex-col items-center px-6 pt-28 pb-10 text-center sm:pt-32">
         <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
           <span className="inline-block h-2 w-2 animate-ping rounded-full bg-emerald-400/80" />
@@ -68,12 +66,8 @@ export default function HomePage() {
           </a>
         </div>
 
-        {/* Subtle divider */
-        }
         <div className="mt-14 h-px w-40 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
       </section>
-
-      {/* Features */}
       <section id="features" className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 pb-28 pt-4 sm:grid-cols-2 md:grid-cols-3">
         <FeatureCard
           icon={<SparkleIcon />}
@@ -91,8 +85,7 @@ export default function HomePage() {
           description="Works for private and public repositories with minimal permissions."
         />
       </section>
-
-      {/* Local styles for animations */}
+      //amimation styles
       <style jsx>{`
         .animate-drift { animation: drift 18s ease-in-out infinite; }
         .animate-drift-slow { animation: drift 26s ease-in-out infinite; }
@@ -135,7 +128,6 @@ function CycleWord({ words, interval = 2500 }: { words: string[]; interval?: num
 }
 
 function GeminiLogo() {
-  // Diamond-style Gemini mark inspired glyph (not official asset)
   return (
     <span className="relative inline-flex items-center">
       <svg

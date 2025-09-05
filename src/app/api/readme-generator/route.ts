@@ -3,9 +3,21 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+if (!process.env.GEMINI_API_KEY) {
+  console.error("GEMINI_API_KEY environment variable is not set");
+}
+
 export async function POST(req: Request) {
   try {
     const { repo } = await req.json();
+
+    if (!repo || !repo.name) {
+      return NextResponse.json({ error: "Repository data is required" }, { status: 400 });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "GEMINI_API_KEY environment variable is not configured" }, { status: 500 });
+    }
 
     const prompt = `
     ROLE: You are an expert technical writer.
@@ -45,14 +57,18 @@ export async function POST(req: Request) {
     - Output ONLY the Markdown content. Do not surround the entire output in code fences.
     `;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
 
     const readme = result.response.text();
 
     return NextResponse.json({ readme });
-  } catch (error) {
+  } catch (error: any) {
     console.error("README generation error:", error);
-    return NextResponse.json({ error: "Failed to generate README" }, { status: 500 });
+    console.error("Error details:", error.message, error.stack);
+    return NextResponse.json({ 
+      error: error.message || "Failed to generate README",
+      details: error.toString()
+    }, { status: 500 });
   }
 }

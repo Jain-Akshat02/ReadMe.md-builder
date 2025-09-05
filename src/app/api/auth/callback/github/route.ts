@@ -7,8 +7,10 @@ import crypto from "crypto";
 export async function GET(request: Request) {
   await dbConnect();
 
+
+
   const { searchParams } = new URL(request.url);
-  const code = searchParams.get("code");
+    const code = searchParams.get("code");
 
   if (!code) {
     return NextResponse.json({ error: "No code returned" }, { status: 400 });
@@ -33,7 +35,7 @@ export async function GET(request: Request) {
 
     const githubUser = userRes.data;
 
-    //Save or update user in DB
+    //To Save user in DB
     let user = await User.findOne({ githubId: githubUser.id });
 
     if (!user) {
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
         accessToken,
       });
     } else {
-      user.accessToken = accessToken; // refresh token
+      user.accessToken = accessToken;
       await user.save();
     }
 

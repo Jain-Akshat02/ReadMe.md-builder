@@ -1,8 +1,9 @@
+//to push to github
+
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
-// GET /api/readme?owner=...&repo=...
-// Fetch README.md for the specified repository. Returns { exists, content, sha }
+
 export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get("gh_token")?.value;
@@ -38,9 +39,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
-// PUT /api/readme  with body: { owner, repo, content, sha?, message? }
-// Creates or updates README.md in the specified repository.
 export async function PUT(req: NextRequest) {
   try {
     const token = req.cookies.get("gh_token")?.value;

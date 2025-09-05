@@ -10,11 +10,14 @@ export default function ProfilePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "public" | "private">("all");
   const [loadingReadme, setLoadingReadme] = useState<string | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
   const [previewRepo, setPreviewRepo] = useState<any>(null);
   const [previewSha, setPreviewSha] = useState<string | null>(null);
+
+
+
   const [previewMode, setPreviewMode] = useState<"current" | "generated">("generated");
   const [saving, setSaving] = useState(false);
   const [improving, setImproving] = useState(false);
@@ -28,7 +31,7 @@ export default function ProfilePage() {
         setUser(res.data.user);
       } catch (err) {
         console.error("Error fetching user:", err);
-        router.push("/"); // not logged in → back home
+        router.push("/");
       } finally {
         setLoading(false);
       }
@@ -48,45 +51,43 @@ export default function ProfilePage() {
     setPreviewSha(null);
     try {
       setLoadingReadme(repo.name);
-      // 1) Try to fetch current README
       const owner = user.login;
-      const current = await axios.get(`/api/readme?owner=${owner}&repo=${repo.name}`);
-      if (current.data.exists) {
-        setOriginalContent(current.data.content || "");
-        setPreviewContent(current.data.content || "");
-        setPreviewSha(current.data.sha || null);
-        setPreviewMode("current");
-      } else {
-        // 2) No README → generate one and show
+      
+      // First, try to get existing README
+      try {
+        const current = await axios.get(`/api/readme?owner=${owner}&repo=${repo.name}`);
+        if (current.data.exists) {
+          setOriginalContent(current.data.content || "");
+          setPreviewContent(current.data.content || "");
+          setPreviewSha(current.data.sha || null);
+          setPreviewMode("current");
+        } else {
+          // No existing README, generate a new one
+          const gen = await axios.post("/api/readme-generator", { repo });
+          const readme = gen.data.readme || "";
+          setOriginalContent("");
+          setPreviewContent(readme);
+          setPreviewMode("generated");
+        }
+      } catch (readmeError: any) {
+        // If there's an error checking for existing README, still try to generate one
+        console.warn("Error checking existing README, generating new one:", readmeError.message);
         const gen = await axios.post("/api/readme-generator", { repo });
         const readme = gen.data.readme || "";
         setOriginalContent("");
         setPreviewContent(readme);
         setPreviewMode("generated");
       }
-    } catch (err:any) {
-      console.error(err.message || err);
-      alert("Failed to load README preview");
+    } catch (err: any) {
+      console.error("Error generating README:", err);
+      console.error("Error details:", err.response?.data || err.message || err);
+      alert(`Failed to generate README: ${err.response?.data?.error || err.message || 'Unknown error'}`);
       setIsPreviewOpen(false);
     } finally {
       setLoadingReadme(null);
     }
   };
-
-  const regenerateFromTemplate = async () => {
-    if (!previewRepo) return;
-    try {
-      setLoadingReadme(previewRepo.name);
-      const gen = await axios.post("/api/readme-generator", { repo: previewRepo });
-      const readme = gen.data.readme || "";
-      setPreviewContent(readme);
-      setPreviewMode("generated");
-    } catch (e:any) {
-      alert("Failed to generate README");
-    } finally {
-      setLoadingReadme(null);
-    }
-  };
+  
 
   const improveCurrentReadme = async () => {
     if (!previewContent) return;
@@ -137,8 +138,6 @@ export default function ProfilePage() {
       </main>
     );
   }
-
-  // Filter + search logic
   const filteredRepos = user.repos.filter((repo: any) => {
     if (filter === "public" && repo.private) return false;
     if (filter === "private" && !repo.private) return false;
@@ -150,7 +149,6 @@ export default function ProfilePage() {
 
   return (
     <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      {/* Decorative background accents */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-tr from-indigo-500/25 via-sky-400/20 to-cyan-300/10 blur-3xl animate-drift" />
         <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-gradient-to-tr from-fuchsia-500/20 via-purple-400/20 to-indigo-400/10 blur-3xl animate-drift-slow" />
@@ -181,12 +179,6 @@ export default function ProfilePage() {
                   <span>{user.location}</span>
                 </div>
               )}
-              {user.company && (
-                <div className="flex items-center gap-1">
-                  <span>🏢</span>
-                  <span>{user.company}</span>
-                </div>
-              )}
               <div className="flex items-center gap-1">
                 <span></span>
                 <span>{user.followers} followers</span>
@@ -205,8 +197,6 @@ export default function ProfilePage() {
             Logout
           </button>
         </div>
-
-        {/* Filter Buttons */}
         <div className="mt-8 flex flex-wrap gap-3 justify-center sm:justify-start">
           <button
             onClick={() => setFilter("all")}
@@ -239,8 +229,6 @@ export default function ProfilePage() {
             Private ({user.privateRepos})
           </button>
         </div>
-
-        {/* Search */}
         <div className="mt-8 relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <span className="text-slate-400 ml-143">🔍</span>
@@ -253,8 +241,6 @@ export default function ProfilePage() {
             className="w-full sm:w-96 pl-10 pr-4 py-2.5 rounded-md border border-white/10 bg-white/5 text-slate-200 placeholder-slate-400 focus:outline-none focus:border-sky-400/50 transition-colors duration-200 ml-143"
           />
         </div>
-
-        {/* Repo list */}
         {user && filteredRepos.length > 0 ? (
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredRepos.map((repo: any) => (
@@ -342,7 +328,9 @@ export default function ProfilePage() {
         )}
       </section>
 
-      {/* README Preview Modal */}
+      {/* preview section */}
+
+
       {isPreviewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-4xl rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur p-6 text-slate-200">
@@ -402,7 +390,9 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Local styles for animations */}
+      {/*this styling was done by AI - */}
+      {/* Akshat Jain */ }
+
       <style jsx>{`
         .animate-drift {
           animation: drift 18s ease-in-out infinite;
