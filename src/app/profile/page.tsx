@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+
 
 // Type definitions
 interface Repository {
@@ -30,6 +30,14 @@ interface User {
   privateRepos: number;
 }
 
+interface ApiError {
+  message?: string;
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+}
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -191,13 +199,8 @@ export default function ProfilePage() {
       <section className="mx-auto mt-20 max-w-5xl rounded-lg border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-lg">
         <div className="flex flex-col items-center sm:flex-row sm:items-start sm:gap-8">
           <div className="relative">
-            <Image
-              src={user.avatarUrl}
-              alt={user.login}
-              width={112}
-              height={112}
-              className="h-28 w-28 rounded-full border-2 border-white/20 shadow-lg"
-            />
+            
+            <img src={user.avatarUrl} alt="" className="h-28 w-28 rounded-full border-2 border-white/20 shadow-lg"/>
           </div>
 
           <div className="flex-1 text-center sm:text-left">
