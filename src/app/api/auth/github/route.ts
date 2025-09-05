@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const clientId = process.env.CLIENT_ID;
+  const clientId = process.env.NEXT_PUBLIC_CLIENT_ID;
   const redirectUri = "http://localhost:3000/api/auth/callback/github";
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=repo`;
 

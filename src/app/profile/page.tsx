@@ -35,14 +35,14 @@ export default function ProfilePage() {
   const generateReadme = async (repo: any) => {
     try {
       setLoadingReadme(repo.name); // indicate which repo is loading
-      const res = await axios.post("/api/readme", { repo });
+      const res = await axios.post("/api/readme-generator", { repo });
       const readme = res.data.readme;
 
       // Here you can either download it or open in a modal
       console.log(readme); // for now, just log it
       alert("README generated! Check console.");
-    } catch (err) {
-      console.error("Error generating README:", err);
+    } catch (err:any) {
+      console.error(err.message, err);
       alert("Failed to generate README");
     } finally {
       setLoadingReadme(null);
