@@ -10,6 +10,14 @@ export default function ProfilePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "public" | "private">("all");
   const [loadingReadme, setLoadingReadme] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string>("");
+  const [originalContent, setOriginalContent] = useState<string>("");
+  const [previewRepo, setPreviewRepo] = useState<any>(null);
+  const [previewSha, setPreviewSha] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<"current" | "generated">("generated");
+  const [saving, setSaving] = useState(false);
+  const [improving, setImproving] = useState(false);
 
   const router = useRouter();
 
@@ -33,19 +41,87 @@ export default function ProfilePage() {
     router.push("/");
   };
   const generateReadme = async (repo: any) => {
+    setPreviewRepo(repo);
+    setIsPreviewOpen(true);
+    setPreviewContent("");
+    setOriginalContent("");
+    setPreviewSha(null);
     try {
-      setLoadingReadme(repo.name); // indicate which repo is loading
-      const res = await axios.post("/api/readme-generator", { repo });
-      const readme = res.data.readme;
-
-      // Here you can either download it or open in a modal
-      console.log(readme); // for now, just log it
-      alert("README generated! Check console.");
+      setLoadingReadme(repo.name);
+      // 1) Try to fetch current README
+      const owner = user.login;
+      const current = await axios.get(`/api/readme?owner=${owner}&repo=${repo.name}`);
+      if (current.data.exists) {
+        setOriginalContent(current.data.content || "");
+        setPreviewContent(current.data.content || "");
+        setPreviewSha(current.data.sha || null);
+        setPreviewMode("current");
+      } else {
+        // 2) No README → generate one and show
+        const gen = await axios.post("/api/readme-generator", { repo });
+        const readme = gen.data.readme || "";
+        setOriginalContent("");
+        setPreviewContent(readme);
+        setPreviewMode("generated");
+      }
     } catch (err:any) {
-      console.error(err.message, err);
+      console.error(err.message || err);
+      alert("Failed to load README preview");
+      setIsPreviewOpen(false);
+    } finally {
+      setLoadingReadme(null);
+    }
+  };
+
+  const regenerateFromTemplate = async () => {
+    if (!previewRepo) return;
+    try {
+      setLoadingReadme(previewRepo.name);
+      const gen = await axios.post("/api/readme-generator", { repo: previewRepo });
+      const readme = gen.data.readme || "";
+      setPreviewContent(readme);
+      setPreviewMode("generated");
+    } catch (e:any) {
       alert("Failed to generate README");
     } finally {
       setLoadingReadme(null);
+    }
+  };
+
+  const improveCurrentReadme = async () => {
+    if (!previewContent) return;
+    try {
+      setImproving(true);
+      const res = await axios.post("/api/gemeni", { content: previewContent });
+      const improved = res.data.improvedReadme || previewContent;
+      setPreviewContent(improved);
+      setPreviewMode("generated");
+    } catch (e:any) {
+      alert("Failed to improve README");
+    } finally {
+      setImproving(false);
+    }
+  };
+
+  const saveReadme = async () => {
+    if (!previewRepo) return;
+    try {
+      setSaving(true);
+      const owner = user.login;
+      await axios.put("/api/readme", {
+        owner,
+        repo: previewRepo.name,
+        content: previewContent,
+        sha: previewSha || undefined,
+        message: previewSha ? "chore: update README.md" : "chore: add README.md",
+      });
+      alert("README saved to repository");
+      setIsPreviewOpen(false);
+    } catch (e:any) {
+      const msg = e?.response?.data?.error || e.message;
+      alert(`Failed to save README: ${msg}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -265,6 +341,66 @@ export default function ProfilePage() {
           </div>
         )}
       </section>
+
+      {/* README Preview Modal */}
+      {isPreviewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-4xl rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur p-6 text-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">README Preview — {previewRepo?.name}</h3>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="rounded-md border border-white/10 px-2 py-1 hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mb-3 flex items-center gap-2 text-sm">
+              <span className={`px-2 py-1 rounded border ${
+                previewMode === "current" ? "border-sky-400 text-sky-300" : "border-white/10 text-slate-400"
+              }`}>Current</span>
+              <span className={`px-2 py-1 rounded border ${
+                previewMode === "generated" ? "border-indigo-400 text-indigo-300" : "border-white/10 text-slate-400"
+              }`}>Generated</span>
+            </div>
+
+            <textarea
+              className="w-full h-80 rounded-md border border-white/10 bg-slate-950/60 p-3 font-mono text-sm text-slate-200 focus:outline-none focus:border-sky-400/50"
+              value={previewContent}
+              onChange={(e) => setPreviewContent(e.target.value)}
+            />
+
+            <div className="mt-4 flex flex-wrap gap-2 justify-end">
+              {originalContent && (
+                <button
+                  onClick={() => {
+                    setPreviewContent(originalContent);
+                    setPreviewMode("current");
+                  }}
+                  className="rounded-md border border-white/10 px-3 py-2 text-sm hover:bg-white/10"
+                >
+                  Use Current
+                </button>
+              )}
+              <button
+                onClick={improveCurrentReadme}
+                disabled={improving}
+                className="rounded-md border border-sky-400/40 text-sky-200 px-3 py-2 text-sm hover:bg-sky-500/10 disabled:opacity-60"
+              >
+                {improving ? "Improving..." : "Improve"}
+              </button>
+              <button
+                onClick={saveReadme}
+                disabled={saving}
+                className="rounded-md border border-fuchsia-400/40 text-fuchsia-200 px-3 py-2 text-sm hover:bg-fuchsia-500/10 disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save to GitHub"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Local styles for animations */}
       <style jsx>{`
