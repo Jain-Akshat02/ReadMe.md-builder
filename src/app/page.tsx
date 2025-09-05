@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 export default function HomePage() {
   const handleLogin = async () => {
     try {
-      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_CLIENT_ID}&redirect_uri=http://localhost:3000/api/auth/callback/github&scope=repo`;
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_CLIENT_ID}&redirect_uri=https://read-me-md-builder.vercel.app/api/auth/callback/github&scope=repo`;
 
       window.location.href = githubAuthUrl;
     } catch (error: any) {

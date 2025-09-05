@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     user.sessionToken = sessionToken;
     await user.save();
 
-    const response = NextResponse.redirect("http://localhost:3000/profile");
+    const response = NextResponse.redirect("https://read-me-md-builder.vercel.app/profile");
     response.cookies.set("gh_token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

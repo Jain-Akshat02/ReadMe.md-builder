@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   }
 
   // Clear cookie and redirect to homepage
-  const res = NextResponse.redirect("http://localhost:3000/");
+  const res = NextResponse.redirect("https://read-me-md-builder.vercel.app/");
   res.cookies.set("gh_token", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
