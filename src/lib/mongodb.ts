@@ -7,7 +7,12 @@ if (!MONGODB_URI) {
 }
 
 // Use cached connection in dev
-let cached = (global as any).mongoose || { conn: null, promise: null };
+interface CachedConnection {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
+const cached: CachedConnection = (global as typeof globalThis & { mongoose?: CachedConnection }).mongoose || { conn: null, promise: null };
 
 export async function dbConnect() {
   if (cached.conn) return cached.conn;

@@ -3,17 +3,44 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+
+// Type definitions
+interface Repository {
+  name: string;
+  description?: string;
+  private: boolean;
+  stars: number;
+  forks: number;
+  language?: string;
+  updatedAt: string;
+  htmlUrl: string;
+}
+
+interface User {
+  login: string;
+  name?: string;
+  bio?: string;
+  location?: string;
+  followers: number;
+  following: number;
+  avatarUrl: string;
+  repos: Repository[];
+  publicRepos: number;
+  privateRepos: number;
+}
+
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "public" | "private">("all");
   const [loadingReadme, setLoadingReadme] = useState<string | null>(null);
-const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<string>("");
   const [originalContent, setOriginalContent] = useState<string>("");
-  const [previewRepo, setPreviewRepo] = useState<any>(null);
+  const [previewRepo, setPreviewRepo] = useState<Repository | null>(null);
   const [previewSha, setPreviewSha] = useState<string | null>(null);
 
 
@@ -43,7 +70,8 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     await axios.get("/api/auth/logout");
     router.push("/");
   };
-  const generateReadme = async (repo: any) => {
+  const generateReadme = async (repo: Repository) => {
+    if (!user) return;
     setPreviewRepo(repo);
     setIsPreviewOpen(true);
     setPreviewContent("");
@@ -69,19 +97,22 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
           setPreviewContent(readme);
           setPreviewMode("generated");
         }
-      } catch (readmeError: any) {
+      } catch (readmeError: unknown) {
         // If there's an error checking for existing README, still try to generate one
-        console.warn("Error checking existing README, generating new one:", readmeError.message);
+        const errorMessage = readmeError instanceof Error ? readmeError.message : 'Unknown error';
+        console.warn("Error checking existing README, generating new one:", errorMessage);
         const gen = await axios.post("/api/readme-generator", { repo });
         const readme = gen.data.readme || "";
         setOriginalContent("");
         setPreviewContent(readme);
         setPreviewMode("generated");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error generating README:", err);
-      console.error("Error details:", err.response?.data || err.message || err);
-      alert(`Failed to generate README: ${err.response?.data?.error || err.message || 'Unknown error'}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorDetails = (err as any)?.response?.data?.error || errorMessage;
+      console.error("Error details:", errorDetails);
+      alert(`Failed to generate README: ${errorDetails}`);
       setIsPreviewOpen(false);
     } finally {
       setLoadingReadme(null);
@@ -97,7 +128,8 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
       const improved = res.data.improvedReadme || previewContent;
       setPreviewContent(improved);
       setPreviewMode("generated");
-    } catch (e:any) {
+    } catch (e: unknown) {
+      console.error("Failed to improve README:", e);
       alert("Failed to improve README");
     } finally {
       setImproving(false);
@@ -105,7 +137,7 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   };
 
   const saveReadme = async () => {
-    if (!previewRepo) return;
+    if (!previewRepo || !user) return;
     try {
       setSaving(true);
       const owner = user.login;
@@ -118,15 +150,25 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
       });
       alert("README saved to repository");
       setIsPreviewOpen(false);
-    } catch (e:any) {
-      const msg = e?.response?.data?.error || e.message;
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      const msg = (e as any)?.response?.data?.error || errorMessage;
       alert(`Failed to save README: ${msg}`);
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
+  const filteredRepos = user?.repos?.filter((repo: Repository) => {
+    if (filter === "public" && repo.private) return false;
+    if (filter === "private" && !repo.private) return false;
+    if (search && !repo.name.toLowerCase().includes(search.toLowerCase())) {
+      return false;
+    }
+    return true;
+  }) || [];
+
+  if (!user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
         <div className="flex flex-col items-center space-y-4">
@@ -138,14 +180,6 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
       </main>
     );
   }
-  const filteredRepos = user.repos.filter((repo: any) => {
-    if (filter === "public" && repo.private) return false;
-    if (filter === "private" && !repo.private) return false;
-    if (search && !repo.name.toLowerCase().includes(search.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
 
   return (
     <main className="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -157,9 +191,11 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
       <section className="mx-auto mt-20 max-w-5xl rounded-lg border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-lg">
         <div className="flex flex-col items-center sm:flex-row sm:items-start sm:gap-8">
           <div className="relative">
-            <img
+            <Image
               src={user.avatarUrl}
               alt={user.login}
+              width={112}
+              height={112}
               className="h-28 w-28 rounded-full border-2 border-white/20 shadow-lg"
             />
           </div>
@@ -243,7 +279,7 @@ const [isPreviewOpen, setIsPreviewOpen] = useState(false);
         </div>
         {user && filteredRepos.length > 0 ? (
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredRepos.map((repo: any) => (
+            {filteredRepos.map((repo: Repository) => (
               <div
                 key={repo.name}
                 className="rounded-lg border border-white/10 bg-white/5 p-5 transition-colors duration-200 hover:border-white/20 hover:bg-white/10"

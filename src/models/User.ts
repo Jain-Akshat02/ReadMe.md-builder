@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import mongoose, { Schema, model, models } from "mongoose";
 
 const UserSchema = new Schema({
