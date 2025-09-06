@@ -30,15 +30,6 @@ interface User {
   privateRepos: number;
 }
 
-interface ApiError {
-  message?: string;
-  response?: {
-    data?: {
-      error?: string;
-    };
-  };
-}
-
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +80,7 @@ export default function ProfilePage() {
       setLoadingReadme(repo.name);
       const owner = user.login;
       
-      // First, try to get existing README
+      // get existing readme
       try {
         const current = await axios.get(`/api/readme?owner=${owner}&repo=${repo.name}`);
         if (current.data.exists) {
@@ -98,7 +89,6 @@ export default function ProfilePage() {
           setPreviewSha(current.data.sha || null);
           setPreviewMode("current");
         } else {
-          // No existing README, generate a new one
           const gen = await axios.post("/api/readme-generator", { repo });
           const readme = gen.data.readme || "";
           setOriginalContent("");
@@ -106,7 +96,6 @@ export default function ProfilePage() {
           setPreviewMode("generated");
         }
       } catch (readmeError: unknown) {
-        // If there's an error checking for existing README, still try to generate one
         const errorMessage = readmeError instanceof Error ? readmeError.message : 'Unknown error';
         console.warn("Error checking existing README, generating new one:", errorMessage);
         const gen = await axios.post("/api/readme-generator", { repo });
